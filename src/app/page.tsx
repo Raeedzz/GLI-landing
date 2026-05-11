@@ -2,6 +2,7 @@ import Socials from "./_components/Socials";
 import HeroCanvas from "./_components/HeroCanvas";
 import DownloadButton from "./_components/DownloadButton";
 import Logo from "./_components/Logo";
+import Features from "./_components/Features";
 
 export default function Page() {
   return (
@@ -13,6 +14,7 @@ export default function Page() {
           className="h-[160svh] w-full"
           aria-hidden="true"
         />
+        <Features />
         <Socials />
         <HeroCanvas />
         <DownloadButton />

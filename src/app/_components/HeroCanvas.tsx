@@ -460,6 +460,7 @@ export default function HeroCanvas() {
         const exitP = (progress - PUSH_UP_START) / (1 - PUSH_UP_START);
         exitTy = -exitP * sh;
       }
+      wrapper!.style.opacity = "1";
       wrapper!.style.transform = `translate3d(0, ${exitTy}px, 0)`;
 
       if (button) {
