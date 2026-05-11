@@ -4,23 +4,30 @@ import { useEffect, useRef } from "react";
 
 const ACCENTS = "{}[]()/\\$*#@%&?!~^|<>+=:;.,-_0123456789";
 const WORD = "Goonware";
-const FONT_SIZE = 14;
-const LINE_HEIGHT = 18;
-const MIN_SPEED = 9;
-const MAX_SPEED = 26;
+const MIN_SPEED = 4;
+const MAX_SPEED = 13;
 const MIN_TAIL = 9;
 const MAX_TAIL = 34;
-const SPAWN_CHANCE_PER_FRAME = 0.085;
+const SPAWN_CHANCE_PER_FRAME = 0.04;
 const MAX_STREAMS_PER_COL = 4;
-const INITIAL_STREAMS_PER_COL_AVG = 2.4;
+const INITIAL_MIN_PER_COL = 2;
+const INITIAL_MAX_PER_COL = 4;
 const HEAD_FLICKER_CHANCE = 0.18;
 const TAIL_FLICKER_RATE = 0.006;
 const INITIAL_SWAP_PROBABILITY = 0.22;
-const REPEL_R = 80;
-const MAX_PUSH = 24;
 const HEAD_COLOR = "rgba(255,255,255,";
 const TAIL_BRIGHT = 210;
 const TAIL_DIM = 110;
+
+function pickResponsive(width: number) {
+  if (width < 480) {
+    return { fontSize: 11, lineHeight: 15, repelR: 60, maxPush: 18 };
+  }
+  if (width < 760) {
+    return { fontSize: 12, lineHeight: 16, repelR: 80, maxPush: 25 };
+  }
+  return { fontSize: 14, lineHeight: 18, repelR: 110, maxPush: 36 };
+}
 
 type Stream = {
   headRow: number;
@@ -74,14 +81,18 @@ export default function GoonwareWaterfall() {
     if (!ctx) return;
 
     const fontFamily = getComputedStyle(container).fontFamily || "monospace";
-    const fontSpec = `${FONT_SIZE}px ${fontFamily}`;
+    let fontSize = 14;
+    let lineHeight = 18;
+    let repelR = 110;
+    let maxPush = 36;
+    let fontSpec = `${fontSize}px ${fontFamily}`;
 
     let cssWidth = 0;
     let cssHeight = 0;
     let dpr = 1;
     let cols = 0;
     let rows = 0;
-    let charWidth = FONT_SIZE * 0.6;
+    let charWidth = fontSize * 0.6;
     let boxX = 0;
     let boxY = 0;
     let streamsByCol: Stream[][] = [];
@@ -92,6 +103,14 @@ export default function GoonwareWaterfall() {
       cssWidth = rect.width;
       cssHeight = rect.height;
       dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      const r = pickResponsive(cssWidth);
+      fontSize = r.fontSize;
+      lineHeight = r.lineHeight;
+      repelR = r.repelR;
+      maxPush = r.maxPush;
+      fontSpec = `${fontSize}px ${fontFamily}`;
+
       canvas!.width = Math.floor(cssWidth * dpr);
       canvas!.height = Math.floor(cssHeight * dpr);
       canvas!.style.width = `${cssWidth}px`;
@@ -100,22 +119,29 @@ export default function GoonwareWaterfall() {
       ctx!.font = fontSpec;
       ctx!.textBaseline = "middle";
       ctx!.textAlign = "center";
-      charWidth = ctx!.measureText("M").width || FONT_SIZE * 0.6;
+      charWidth = ctx!.measureText("M").width || fontSize * 0.6;
+
+      const aspect = cssWidth / cssHeight;
       const boxW = Math.min(1100, cssWidth * 0.92);
-      const boxH = (boxW * 9) / 16;
+      const boxH =
+        aspect > 1.4
+          ? (boxW * 9) / 16
+          : Math.min(cssHeight * 0.7, boxW * 1.05);
       cols = Math.max(1, Math.floor(boxW / charWidth));
-      rows = Math.max(1, Math.floor(boxH / LINE_HEIGHT));
+      rows = Math.max(1, Math.floor(boxH / lineHeight));
       boxX = (cssWidth - cols * charWidth) / 2;
-      boxY = (cssHeight - rows * LINE_HEIGHT) / 2;
+      boxY = (cssHeight - rows * lineHeight) / 2;
 
       streamsByCol = new Array(cols).fill(null).map(() => []);
       for (let c = 0; c < cols; c++) {
-        const n = Math.min(
-          MAX_STREAMS_PER_COL,
-          Math.floor(Math.random() * (INITIAL_STREAMS_PER_COL_AVG * 2)),
-        );
+        const span = INITIAL_MAX_PER_COL - INITIAL_MIN_PER_COL + 1;
+        const n =
+          INITIAL_MIN_PER_COL + Math.floor(Math.random() * span);
         for (let k = 0; k < n; k++) {
-          streamsByCol[c].push(spawnStream(rows, false));
+          const s = spawnStream(rows, false);
+          s.headRow = ((k + Math.random()) / n) * (rows + s.chars.length) -
+            s.chars.length * 0.3;
+          streamsByCol[c].push(s);
         }
       }
     }
@@ -171,7 +197,7 @@ export default function GoonwareWaterfall() {
           const row = s.headRow - i;
           if (row < -0.5 || row > rows + 0.5) continue;
 
-          const cellY = boxY + row * LINE_HEIGHT + LINE_HEIGHT / 2;
+          const cellY = boxY + row * lineHeight + lineHeight / 2;
 
           const tailT =
             s.chars.length <= 1 ? 0 : i / (s.chars.length - 1);
@@ -183,9 +209,9 @@ export default function GoonwareWaterfall() {
 
           let drawX = baseX;
           let drawY = cellY;
-          if (d < REPEL_R) {
-            const k = 1 - d / REPEL_R;
-            const push = k * k * MAX_PUSH;
+          if (d < repelR) {
+            const k = 1 - d / repelR;
+            const push = k * k * maxPush;
             const inv = 1 / (d || 1);
             drawX += dx * inv * push;
             drawY += dy * inv * push;
@@ -227,6 +253,8 @@ export default function GoonwareWaterfall() {
 
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerleave", onPointerLeave);
+    canvas.addEventListener("pointerup", onPointerLeave);
+    canvas.addEventListener("pointercancel", onPointerLeave);
 
     const ro = new ResizeObserver(() => resize());
     ro.observe(container);
@@ -241,6 +269,8 @@ export default function GoonwareWaterfall() {
       ro.disconnect();
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerleave", onPointerLeave);
+      canvas.removeEventListener("pointerup", onPointerLeave);
+      canvas.removeEventListener("pointercancel", onPointerLeave);
     };
   }, []);
 

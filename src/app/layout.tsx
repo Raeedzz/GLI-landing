@@ -9,7 +9,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Goonware — A GPU accelerated terminal for multi agent use",
+  title: "Goonware",
   description:
     "Goonware is a GPU accelerated terminal designed for multi agent use.",
 };
