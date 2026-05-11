@@ -1,16 +1,21 @@
-import Hero from "./_components/Hero";
-import Download from "./_components/Download";
+import Socials from "./_components/Socials";
+import HeroCanvas from "./_components/HeroCanvas";
+import DownloadButton from "./_components/DownloadButton";
 import Logo from "./_components/Logo";
-import GitHubLink from "./_components/GitHubLink";
 
 export default function Page() {
   return (
     <>
       <Logo />
-      <GitHubLink />
-      <main className="h-[100svh] w-full overflow-y-scroll snap-y snap-mandatory bg-black no-scrollbar">
-        <Hero />
-        <Download />
+      <main className="h-[100svh] w-full overflow-y-scroll bg-black no-scrollbar">
+        <section
+          id="hero"
+          className="h-[160svh] w-full"
+          aria-hidden="true"
+        />
+        <Socials />
+        <HeroCanvas />
+        <DownloadButton />
       </main>
     </>
   );
