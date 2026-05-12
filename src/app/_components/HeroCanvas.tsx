@@ -6,8 +6,8 @@ const ACCENTS = "{}[]()/\\$*#@%&?!~^|<>+=:;.,-_0123456789";
 const WORD = "Goonware";
 const HEADING_LINES = [
   "A GPU accelerated",
-  "terminal",
-  "for multi agent orchastration",
+  "open-source terminal",
+  "for multi agent orchestration",
 ];
 const BUTTON_TEXT = "DOWNLOAD FOR MAC";
 const BUTTON_ID = "hero-download-button";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const FEATURES = [
   {
@@ -31,6 +31,8 @@ const SCRAMBLE_CHARS =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789{}[]()/\\$*#@%&?!~^|<>+=";
 const STAGGER_END_MS = 600;
 const SCRAMBLE_HOLD_MS = 220;
+const REPEL_RADIUS = 110;
+const MAX_PUSH = 32;
 
 function randomChar() {
   return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
@@ -96,8 +98,16 @@ export default function Features() {
     if (!node) return;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
 
+    const spans = Array.from(
+      node.querySelectorAll<HTMLSpanElement>("[data-char]"),
+    );
+    const nsChars: string[] = [];
+    for (let i = 0; i < target.length; i++) {
+      if (target[i] !== " ") nsChars.push(target[i]);
+    }
+    const n = Math.min(spans.length, nsChars.length);
+
     if (isFirstRender.current) {
-      node.textContent = target;
       isFirstRender.current = false;
       return;
     }
@@ -107,17 +117,12 @@ export default function Features() {
 
     function tick(now: number) {
       const elapsed = now - t0;
-      const out = new Array<string>(target.length);
-      for (let i = 0; i < target.length; i++) {
-        const c = target[i];
-        if (c === " ") {
-          out[i] = " ";
-          continue;
-        }
-        const arrival = (i / Math.max(1, target.length - 1)) * STAGGER_END_MS;
-        out[i] = elapsed >= arrival + SCRAMBLE_HOLD_MS ? c : randomChar();
+      for (let i = 0; i < n; i++) {
+        const c = nsChars[i];
+        const arrival = (i / Math.max(1, n - 1)) * STAGGER_END_MS;
+        spans[i].textContent =
+          elapsed >= arrival + SCRAMBLE_HOLD_MS ? c : randomChar();
       }
-      if (textRef.current) textRef.current.textContent = out.join("");
       if (elapsed < totalMs) {
         rafRef.current = requestAnimationFrame(tick);
       } else {
@@ -126,6 +131,84 @@ export default function Features() {
     }
     rafRef.current = requestAnimationFrame(tick);
   }, [active]);
+
+  useEffect(() => {
+    const container = textRef.current;
+    if (!container) return;
+
+    type Pos = { el: HTMLSpanElement; cx: number; cy: number };
+    let positions: Pos[] = [];
+    let mouseX = -99999;
+    let mouseY = -99999;
+    let rafId = 0;
+
+    function measure() {
+      const cRect = container!.getBoundingClientRect();
+      const chars = container!.querySelectorAll<HTMLSpanElement>("[data-char]");
+      positions = Array.from(chars).map((el) => {
+        const prev = el.style.transform;
+        el.style.transform = "";
+        const r = el.getBoundingClientRect();
+        el.style.transform = prev;
+        return {
+          el,
+          cx: r.left + r.width / 2 - cRect.left,
+          cy: r.top + r.height / 2 - cRect.top,
+        };
+      });
+    }
+
+    function loop() {
+      const cRect = container!.getBoundingClientRect();
+      const mx = mouseX === -99999 ? -99999 : mouseX - cRect.left;
+      const my = mouseY === -99999 ? -99999 : mouseY - cRect.top;
+      for (const p of positions) {
+        const dx = mx - p.cx;
+        const dy = my - p.cy;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        let pushX = 0;
+        let pushY = 0;
+        if (d < REPEL_RADIUS && d > 0.5) {
+          const k = 1 - d / REPEL_RADIUS;
+          const push = k * k * MAX_PUSH;
+          pushX = (-dx / d) * push;
+          pushY = (-dy / d) * push;
+        }
+        p.el.style.transform = `translate(${pushX}px, ${pushY}px)`;
+      }
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function onPointerMove(e: PointerEvent) {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    }
+    function clearRepel() {
+      mouseX = -99999;
+      mouseY = -99999;
+    }
+
+    measure();
+    const onResize = () => measure();
+    window.addEventListener("resize", onResize);
+    document.addEventListener("pointermove", onPointerMove);
+    document.documentElement.addEventListener("mouseleave", clearRepel);
+    window.addEventListener("blur", clearRepel);
+    rafId = requestAnimationFrame(loop);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", onResize);
+      document.removeEventListener("pointermove", onPointerMove);
+      document.documentElement.removeEventListener("mouseleave", clearRepel);
+      window.removeEventListener("blur", clearRepel);
+    };
+  }, [active]);
+
+  const words = useMemo(
+    () => FEATURES[active].title.split(" "),
+    [active],
+  );
 
   const goTo = useCallback(
     (i: number) => {
@@ -190,7 +273,27 @@ export default function Features() {
             className="font-mono text-[1.4rem] sm:text-[1.75rem] md:text-[2.1rem] lg:text-[2.4rem] xl:text-[2.7rem] text-white/95 leading-[1.15] tracking-[-0.01em]"
             style={{ minHeight: "4.6em" }}
           >
-            {FEATURES[active].title}
+            {words.map((word, wi) => (
+              <span key={wi}>
+                <span
+                  style={{ display: "inline-block", whiteSpace: "nowrap" }}
+                >
+                  {Array.from(word).map((ch, ci) => (
+                    <span
+                      key={ci}
+                      data-char
+                      style={{
+                        display: "inline-block",
+                        willChange: "transform",
+                      }}
+                    >
+                      {ch}
+                    </span>
+                  ))}
+                </span>
+                {wi < words.length - 1 ? " " : ""}
+              </span>
+            ))}
           </div>
 
           <div className="flex gap-2 pt-3 -my-3">

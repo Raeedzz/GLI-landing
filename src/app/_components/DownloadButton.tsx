@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import AppleIcon from "./AppleIcon";
 
 const TARGET = "DOWNLOAD FOR MAC";
@@ -17,7 +17,6 @@ export default function DownloadButton() {
   const aRef = useRef<HTMLAnchorElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
   const rafRef = useRef(0);
-  const [hovering, setHovering] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -26,7 +25,6 @@ export default function DownloadButton() {
   }, []);
 
   function startCascade() {
-    setHovering(true);
     const text = textRef.current;
     if (!text) return;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -58,7 +56,6 @@ export default function DownloadButton() {
   }
 
   function resetText() {
-    setHovering(false);
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = 0;
     if (textRef.current) textRef.current.textContent = TARGET;
@@ -74,15 +71,17 @@ export default function DownloadButton() {
       onMouseLeave={resetText}
       onFocus={startCascade}
       onBlur={resetText}
-      className="fixed left-1/2 top-[62%] z-30 inline-flex items-center justify-center gap-3 font-mono text-[0.7rem] sm:text-xs md:text-sm uppercase tracking-[0.2em] sm:tracking-[0.25em] border border-white/30 px-8 py-3.5 sm:px-10 sm:py-4 text-white/90 active:bg-white active:text-black hover:bg-white hover:text-black transition-colors duration-200 select-none will-change-transform"
+      className="fixed left-1/2 top-[62%] z-30 inline-flex flex-row items-center justify-center gap-2.5 whitespace-nowrap font-mono text-[0.7rem] sm:text-xs md:text-sm uppercase tracking-[0.2em] sm:tracking-[0.25em] border border-white/30 px-8 py-3.5 sm:px-10 sm:py-4 text-white/90 active:bg-white active:text-black hover:bg-white hover:text-black transition-colors duration-200 select-none will-change-transform leading-none"
       style={{
         transform: "translate(-50%, calc(-50% + var(--exit-ty, 0px)))",
       }}
     >
-      <span className="block w-[1.4em] h-[1.4em] shrink-0">
-        <AppleIcon hovering={hovering} />
+      <span className="inline-flex shrink-0 w-[1.1em] h-[1.1em] items-center justify-center">
+        <AppleIcon />
       </span>
-      <span ref={textRef}>{TARGET}</span>
+      <span ref={textRef} className="shrink-0">
+        {TARGET}
+      </span>
     </a>
   );
 }
