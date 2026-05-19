@@ -39,7 +39,7 @@ function SeoContent() {
         download for Mac.
       </p>
       <a
-        href="https://github.com/sckryteam/GLI/releases/latest/download/Goonware.dmg"
+        href="https://github.com/Raeedzz/GLI/releases/latest/download/Goonware.dmg"
         rel="noopener"
       >
         Download Goonware for Mac

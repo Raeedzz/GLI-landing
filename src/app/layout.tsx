@@ -130,7 +130,7 @@ const structuredData = {
       operatingSystem: "macOS",
       url: SITE_URL,
       downloadUrl:
-        "https://github.com/sckryteam/GLI/releases/latest/download/Goonware.dmg",
+        "https://github.com/Raeedzz/GLI/releases/latest/download/Goonware.dmg",
       softwareVersion: "latest",
       offers: {
         "@type": "Offer",

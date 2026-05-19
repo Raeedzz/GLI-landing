@@ -65,7 +65,7 @@ export default function DownloadButton() {
     <a
       ref={aRef}
       id="hero-download-button"
-      href="https://github.com/sckryteam/GLI/releases/latest/download/Goonware.dmg"
+      href="https://github.com/Raeedzz/GLI/releases/latest/download/Goonware.dmg"
       download
       onMouseEnter={startCascade}
       onMouseLeave={resetText}
